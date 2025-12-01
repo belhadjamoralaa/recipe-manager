@@ -1,0 +1,207 @@
+:root {
+  --brand-primary: #5c6bf2;
+  --brand-secondary: #3f3d56;
+  --brand-accent: #f4a261;
+  --brand-bg: #f4f5fb;
+  --brand-text: #1f2430;
+  --card-radius: 14px;
+  --card-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+
+  font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
+    sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: radial-gradient(circle at top left, #eef0ff 0, transparent 55%),
+    radial-gradient(circle at bottom right, #fef3e7 0, transparent 55%),
+    var(--brand-bg);
+  color: var(--brand-text);
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  text-decoration: none;
+  color: var(--brand-primary);
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Cartes avec hover (pour wrapper RecipeCard) */
+.card-hover {
+  transition: transform 0.18s ease, box-shadow 0.18s ease,
+    background-color 0.18s ease;
+  box-shadow: var(--card-shadow);
+  border-radius: var(--card-radius);
+  background-color: #ffffff;
+}
+
+.card-hover:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.15);
+}
+
+/* Texte limité à 2 lignes */
+.text-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Petit hero pour le haut des pages (ex: Favorites) */
+.hero-blur {
+  background: radial-gradient(
+      circle at 20% 20%,
+      rgba(92, 107, 242, 0.12),
+      transparent 40%
+    ),
+    radial-gradient(
+      circle at 80% 0%,
+      rgba(244, 162, 97, 0.16),
+      transparent 35%
+    ),
+    radial-gradient(
+      circle at 50% 80%,
+      rgba(63, 61, 86, 0.14),
+      transparent 40%
+    );
+  border-radius: 28px;
+  padding: 2rem;
+  color: #111827;
+}
+
+.hero-blur h1,
+.hero-blur h2,
+.hero-blur h3 {
+  color: #111827;
+}
+
+.hero-cta .btn {
+  min-width: 160px;
+}
+
+/* Titre de section avec point coloré */
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0.5rem;
+}
+
+.section-title .dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+}
+
+/* Bloc pour les commentaires */
+.comment-card {
+  border: 1px solid rgba(15, 23, 42, 0.06);
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  background: #ffffff;
+}
+
+/* Carte pour les formulaires (Login / Register) */
+.form-card {
+  background: #ffffff;
+  border-radius: 16px;
+  box-shadow: var(--card-shadow);
+  padding: 2rem 1.75rem;
+}
+
+@media (min-width: 576px) {
+  .form-card {
+    padding: 2.25rem 2.25rem;
+  }
+}
+
+/* Badge doux (ex: compteur de favoris) */
+.badge-soft-primary {
+  background: rgba(92, 107, 242, 0.12);
+  color: #303a9b;
+  border-radius: 999px;
+  font-size: 0.85rem;
+}
+
+/* Bouton avec icône cœur */
+.btn-heart {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Tuile gradient pour l'état vide */
+.placeholder-tile {
+  background: linear-gradient(
+    135deg,
+    rgba(92, 107, 242, 0.08),
+    rgba(244, 162, 97, 0.1)
+  );
+  border-radius: 16px;
+  height: 140px;
+}
+
+/* Bloc "rien à afficher" (list-empty) */
+.list-empty {
+  border: 1px dashed rgba(15, 23, 42, 0.12);
+  border-radius: 16px;
+  padding: 1.75rem;
+  background: #ffffff;
+}
+
+/* Inputs & boutons (Bootstrap friendly) */
+.form-control {
+  border-radius: 10px;
+  border-color: rgba(148, 163, 184, 0.6);
+}
+
+.form-control:focus {
+  border-color: var(--brand-primary);
+  box-shadow: 0 0 0 0.15rem rgba(92, 107, 242, 0.25);
+}
+
+.btn-primary {
+  background-color: var(--brand-primary);
+  border-color: var(--brand-primary);
+}
+
+.btn-primary:hover {
+  background-color: #4a5ae4;
+  border-color: #4a5ae4;
+}
+
+.btn-success {
+  background-color: #16a34a;
+  border-color: #16a34a;
+}
+
+.btn-success:hover {
+  background-color: #15803d;
+  border-color: #15803d;
+}
+
+/* Responsive petits écrans */
+@media (max-width: 576px) {
+  .hero-blur {
+    padding: 1.5rem;
+    border-radius: 22px;
+  }
+
+  .list-empty {
+    padding: 1.25rem;
+  }
+}
