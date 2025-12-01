@@ -2,9 +2,30 @@ import { Request, Response, NextFunction } from 'express';
 import mongoose from 'mongoose';
 import Recipe from '../models/Recipe';
 
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+  };
+}
+
+function isValidObjectId(id: string): boolean {
+  return mongoose.Types.ObjectId.isValid(id);
+}
+
+function sendNotFound(res: Response, message = 'Resource not found'): void {
+  res.status(404).json({ success: false, message });
+}
+
+function sendUnauthorized(res: Response): void {
+  res.status(401).json({ success: false, message: 'Unauthorized' });
+}
+
 function parsePagination(query: Request['query']) {
   const page = Math.max(1, parseInt((query.page as string) || '1', 10));
-  const limit = Math.max(1, Math.min(100, parseInt((query.limit as string) || '10', 10)));
+  const limit = Math.max(
+    1,
+    Math.min(100, parseInt((query.limit as string) || '10', 10)),
+  );
   const skip = (page - 1) * limit;
   return { page, limit, skip };
 }
@@ -22,13 +43,17 @@ function normalizeIngredients(raw: unknown): string[] {
   return [];
 }
 
-export async function listRecipes(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function listRecipes(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const { page, limit, skip } = parsePagination(req.query);
-    const q = (req.query.q as string) || '';
+    const q = ((req.query.q as string) || '').trim();
 
     const filter: Record<string, unknown> = {};
-    if (q.trim()) {
+    if (q) {
       filter.$or = [
         { title: { $regex: q, $options: 'i' } },
         { description: { $regex: q, $options: 'i' } },
@@ -46,7 +71,7 @@ export async function listRecipes(req: Request, res: Response, next: NextFunctio
 
     const totalPages = Math.max(1, Math.ceil(totalItems / limit));
 
-    res.json({
+    res.status(200).json({
       success: true,
       data: recipes,
       pagination: {
@@ -61,40 +86,55 @@ export async function listRecipes(req: Request, res: Response, next: NextFunctio
   }
 }
 
-export async function getRecipeById(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function getRecipeById(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      res.status(404).json({ success: false, message: 'Recipe not found' });
+    if (!isValidObjectId(id)) {
+      sendNotFound(res, 'Recipe not found');
       return;
     }
 
-    const recipe = await Recipe.findById(id).populate('author', 'username email');
+    const recipe = await Recipe.findById(id).populate(
+      'author',
+      'username email',
+    );
+
     if (!recipe) {
-      res.status(404).json({ success: false, message: 'Recipe not found' });
+      sendNotFound(res, 'Recipe not found');
       return;
     }
 
-    res.json({ success: true, data: recipe });
+    res.status(200).json({ success: true, data: recipe });
   } catch (error) {
     next(error);
   }
 }
 
-export async function createRecipe(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function createRecipe(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const { title, description, instructions, imageUrl } = req.body;
     const ingredients = normalizeIngredients(req.body.ingredients);
 
     if (!title || !description || !instructions) {
-      res.status(400).json({ success: false, message: 'Title, description, and instructions are required' });
+      res.status(400).json({
+        success: false,
+        message: 'Title, description, and instructions are required',
+      });
       return;
     }
 
     const authorId = req.user?.id;
     if (!authorId) {
-      res.status(401).json({ success: false, message: 'Unauthorized' });
+      sendUnauthorized(res);
       return;
     }
 
@@ -107,39 +147,54 @@ export async function createRecipe(req: Request, res: Response, next: NextFuncti
       author: authorId,
     });
 
+    const populatedRecipe = await recipe.populate(
+      'author',
+      'username email',
+    );
+
     res.status(201).json({
       success: true,
       message: 'Recipe created successfully',
-      data: recipe,
+      data: populatedRecipe,
     });
   } catch (error) {
     next(error);
   }
 }
 
-export async function updateRecipe(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function updateRecipe(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      res.status(404).json({ success: false, message: 'Recipe not found' });
+    if (!isValidObjectId(id)) {
+      sendNotFound(res, 'Recipe not found');
       return;
     }
 
     const recipe = await Recipe.findById(id);
     if (!recipe) {
-      res.status(404).json({ success: false, message: 'Recipe not found' });
+      sendNotFound(res, 'Recipe not found');
       return;
     }
 
     const userId = req.user?.id;
     if (!userId || recipe.author.toString() !== userId) {
-      res.status(403).json({ success: false, message: 'You are not allowed to update this recipe' });
+      res.status(403).json({
+        success: false,
+        message: 'You are not allowed to update this recipe',
+      });
       return;
     }
 
     const { title, description, instructions, imageUrl } = req.body;
-    const ingredients = req.body.ingredients !== undefined ? normalizeIngredients(req.body.ingredients) : undefined;
+    const ingredients =
+      req.body.ingredients !== undefined
+        ? normalizeIngredients(req.body.ingredients)
+        : undefined;
 
     if (title !== undefined) recipe.title = title;
     if (description !== undefined) recipe.description = description;
@@ -148,37 +203,55 @@ export async function updateRecipe(req: Request, res: Response, next: NextFuncti
     if (imageUrl !== undefined) recipe.imageUrl = imageUrl;
 
     await recipe.save();
+    const populatedRecipe = await recipe.populate(
+      'author',
+      'username email',
+    );
 
-    res.json({ success: true, message: 'Recipe updated successfully', data: recipe });
+    res.status(200).json({
+      success: true,
+      message: 'Recipe updated successfully',
+      data: populatedRecipe,
+    });
   } catch (error) {
     next(error);
   }
 }
 
-export async function deleteRecipe(req: Request, res: Response, next: NextFunction): Promise<void> {
+export async function deleteRecipe(
+  req: AuthenticatedRequest,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
   try {
     const { id } = req.params;
 
-    if (!mongoose.Types.ObjectId.isValid(id)) {
-      res.status(404).json({ success: false, message: 'Recipe not found' });
+    if (!isValidObjectId(id)) {
+      sendNotFound(res, 'Recipe not found');
       return;
     }
 
     const recipe = await Recipe.findById(id);
     if (!recipe) {
-      res.status(404).json({ success: false, message: 'Recipe not found' });
+      sendNotFound(res, 'Recipe not found');
       return;
     }
 
     const userId = req.user?.id;
     if (!userId || recipe.author.toString() !== userId) {
-      res.status(403).json({ success: false, message: 'You are not allowed to delete this recipe' });
+      res.status(403).json({
+        success: false,
+        message: 'You are not allowed to delete this recipe',
+      });
       return;
     }
 
     await recipe.deleteOne();
 
-    res.json({ success: true, message: 'Recipe deleted successfully' });
+    res.status(200).json({
+      success: true,
+      message: 'Recipe deleted successfully',
+    });
   } catch (error) {
     next(error);
   }
